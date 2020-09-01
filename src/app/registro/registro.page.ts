@@ -4,6 +4,9 @@ import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 
 import { Router } from '@angular/router';
 
+import { CpfValidator } from '../validators/cpf-validator';
+import { ComparacaoValidator } from '../validators/comparacao-validator';
+
 @Component({
   selector: 'app-registro',
   templateUrl: './registro.page.html',
@@ -22,6 +25,7 @@ export class RegistroPage implements OnInit {
       { tipo: 'required', mensagem: 'O campo CPF é obrigatório!' },
       { tipo: 'minlength', mensagem: 'O CPF deve ter pelo menos 11 caracteres!' },
       { tipo: 'maxlength', mensagem: 'O CPF deve ter no máximo 14 caracteres!' },
+      { tipo: 'invalido', mensagem: 'CPF inválido!'}
     ],
     dataDeNascimento: [
       { tipo: 'required', mensagem: 'O campo data de nascimento é obrigatório!' },
@@ -42,20 +46,28 @@ export class RegistroPage implements OnInit {
     ],
     confirmarSenha: [
       { tipo: 'required', mensagem: 'O campo confirmar é obrigatório!' },
-      { tipo: 'minlength', mensagem: 'A senha deve ter pelo menos 6 caracteres!' }
+      { tipo: 'minlength', mensagem: 'A senha deve ter pelo menos 6 caracteres!' },
+      { tipo: 'comparacao', mensagem: 'Deve ser igual a senha!'}
     ]
   };
 
   constructor(private formBuilder: FormBuilder, private router:Router) {
     this.formRegistro = formBuilder.group({
       nome: ['', Validators.compose([Validators.required, Validators.minLength(3)])],
-      cpf: ['', Validators.compose([Validators.required, Validators.minLength(11), Validators.maxLength(14)])],
+      cpf: ['', Validators.compose([
+        Validators.required,
+        Validators.minLength(11),
+        Validators.maxLength(14),
+        CpfValidator.cpfValido
+      ])],
       dataDeNascimento: ['', Validators.compose([Validators.required])],
       genero: ['', Validators.compose([Validators.required])],
       celular: ['', Validators.compose([Validators.maxLength(16)])],
       email: ['', Validators.compose([Validators.required, Validators.email])],
       senha: ['', Validators.compose([Validators.required, Validators.minLength(6)])],
       confirmarSenha: ['', Validators.compose([Validators.required, Validators.minLength(6)])],
+    }, {
+      validator: ComparacaoValidator('senha', 'confirmarSenha')
     });
    }
 
