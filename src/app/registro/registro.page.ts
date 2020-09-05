@@ -1,11 +1,12 @@
 import { Component, OnInit } from '@angular/core';
-
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-
-import { Router } from '@angular/router';
 
 import { CpfValidator } from '../validators/cpf-validator';
 import { ComparacaoValidator } from '../validators/comparacao-validator';
+import { UsuariosService } from '../services/usuarios.service';
+import { AlertController } from '@ionic/angular';
+import { Usuario } from '../models/Usuario';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-registro',
@@ -25,7 +26,7 @@ export class RegistroPage implements OnInit {
       { tipo: 'required', mensagem: 'O campo CPF é obrigatório!' },
       { tipo: 'minlength', mensagem: 'O CPF deve ter pelo menos 11 caracteres!' },
       { tipo: 'maxlength', mensagem: 'O CPF deve ter no máximo 14 caracteres!' },
-      { tipo: 'invalido', mensagem: 'CPF inválido!'}
+      { tipo: 'invalido', mensagem: 'CPF inválido!' }
     ],
     dataDeNascimento: [
       { tipo: 'required', mensagem: 'O campo data de nascimento é obrigatório!' },
@@ -47,11 +48,16 @@ export class RegistroPage implements OnInit {
     confirmarSenha: [
       { tipo: 'required', mensagem: 'O campo confirmar é obrigatório!' },
       { tipo: 'minlength', mensagem: 'A senha deve ter pelo menos 6 caracteres!' },
-      { tipo: 'comparacao', mensagem: 'Deve ser igual a senha!'}
+      { tipo: 'comparacao', mensagem: 'Deve ser igual a senha!' }
     ]
   };
 
-  constructor(private formBuilder: FormBuilder, private router:Router) {
+  constructor(
+    private formBuilder: FormBuilder,
+    private usuariosService: UsuariosService,
+    public alertController: AlertController,
+    public router: Router
+  ) {
     this.formRegistro = formBuilder.group({
       nome: ['', Validators.compose([Validators.required, Validators.minLength(3)])],
       cpf: ['', Validators.compose([
@@ -69,18 +75,44 @@ export class RegistroPage implements OnInit {
     }, {
       validator: ComparacaoValidator('senha', 'confirmarSenha')
     });
-   }
-
-  ngOnInit() {
   }
 
-public registrar() {
-  if(this.formRegistro.valid) {
-    console.log('formulário válido!')
-    this.router.navigateByUrl('/login')
-  } else {
-    console.log('formulário inválido.')
+  async ngOnInit() {
+    await this.usuariosService.buscarTodos();
+    console.log(this.usuariosService.listaUsuarios);
   }
-}
+
+  public async salvarFormulario() {
+    if (this.formRegistro.valid) {
+
+      let usuario = new Usuario();
+      usuario.nome = this.formRegistro.value.nome;
+      usuario.cpf = this.formRegistro.value.cpf;
+      usuario.dataNascimento = new Date(this.formRegistro.value.dataNascimento);
+      usuario.genero = this.formRegistro.value.genero;
+      usuario.celular = this.formRegistro.value.celular;
+      usuario.email = this.formRegistro.value.email;
+      usuario.senha = this.formRegistro.value.senha;
+
+      if (await this.usuariosService.salvar(usuario)) {
+        this.exibirAlerta('SUCESSO!', 'Usuário salvo com sucesso!');
+        this.router.navigateByUrl('/login');
+      } else {
+        this.exibirAlerta('ERRO!', 'Erro ao salvar o usuário!');
+      }
+    } else {
+      this.exibirAlerta('ADVERTENCIA!', 'Formulário inválido<br/>Verifique os campos do seu formulário!');
+    }
+  }
+
+  async exibirAlerta(titulo: string, mensagem: string) {
+    const alert = await this.alertController.create({
+      header: titulo,
+      message: mensagem,
+      buttons: ['OK']
+    });
+
+    await alert.present();
+  }
 
 }
