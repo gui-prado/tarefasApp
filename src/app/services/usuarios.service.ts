@@ -22,16 +22,41 @@ export class UsuariosService {
   public async salvar(usuario: Usuario) {
     await this.buscarTodos();
 
-    if(!usuario) {
+    if (!usuario) {
       return false;
     }
 
-    if(!this.listaUsuarios) {
+    if (!this.listaUsuarios) {
       this.listaUsuarios = [];
     }
 
-      this.listaUsuarios.push(usuario);
+    this.listaUsuarios.push(usuario);
 
-      return await this.armazenamentoService.salvarDados('usuarios', this.listaUsuarios)
+    return await this.armazenamentoService.salvarDados('usuarios', this.listaUsuarios)
+  } // Fim do salvar()
+
+  public async login(email: string, senha: string) {
+    let usuario: Usuario;
+
+    await this.buscarTodos();
+
+    const listaTemporaria = this.listaUsuarios.filter(usuarioArmazenado => {
+      return (usuarioArmazenado.email == email && usuarioArmazenado.senha == senha);
+    }); // Retorna um array
+
+    if (listaTemporaria.length > 0) {
+      usuario = listaTemporaria.reduce(item => item);
     }
-  }
+
+    return usuario;
+  } // Fim do login()
+
+  public salvarUsuarioLogado(usuario: Usuario) {
+    delete usuario.senha;
+    this.armazenamentoService.salvarDados('usuarioLogado', usuario);
+  } // Fim do salvarUsuarioLogado()
+
+  public async buscarUsuarioLogado() {
+    return await this.armazenamentoService.pegarDados('usuarioLogado');
+  } // Fim do buscarUsuarioLogado()
+}
