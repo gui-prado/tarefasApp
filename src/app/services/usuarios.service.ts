@@ -59,4 +59,8 @@ export class UsuariosService {
   public async buscarUsuarioLogado() {
     return await this.armazenamentoService.pegarDados('usuarioLogado');
   } // Fim do buscarUsuarioLogado()
+
+  public async removerUsuarioLogado() {
+    return await this.armazenamentoService.removerDados('usuarioLogado');
+  } // Fim do removerUsuarioLogado()
 }
