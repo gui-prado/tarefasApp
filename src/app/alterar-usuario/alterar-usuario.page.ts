@@ -1,21 +1,19 @@
 import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-
-import { CpfValidator } from '../validators/cpf-validator';
-import { ComparacaoValidator } from '../validators/comparacao-validator';
-import { UsuariosService } from '../services/usuarios.service';
+import { Router } from '@angular/router';
 import { AlertController } from '@ionic/angular';
 import { Usuario } from '../models/Usuario';
-import { Router } from '@angular/router';
+import { UsuariosService } from '../services/usuarios.service';
+import { CpfValidator } from '../validators/cpf-validator';
 
 @Component({
-  selector: 'app-registro',
-  templateUrl: './registro.page.html',
-  styleUrls: ['./registro.page.scss'],
+  selector: 'app-alterar-usuario',
+  templateUrl: './alterar-usuario.page.html',
+  styleUrls: ['./alterar-usuario.page.scss'],
 })
-export class RegistroPage implements OnInit {
+export class AlterarUsuarioPage implements OnInit {
 
-  public formRegistro: FormGroup;
+  public formAlterar: FormGroup;
 
   public mensagens_validacao = {
     nome: [
@@ -40,17 +38,12 @@ export class RegistroPage implements OnInit {
     email: [
       { tipo: 'required', mensagem: 'O campo Email é obrigatório!' },
       { tipo: 'email', mensagem: 'Email inválido!' }
-    ],
-    senha: [
-      { tipo: 'required', mensagem: 'O campo senha é obrigatório!' },
-      { tipo: 'minlength', mensagem: 'A senha deve ter pelo menos 6 caracteres!' }
-    ],
-    confirmarSenha: [
-      { tipo: 'required', mensagem: 'O campo confirmar é obrigatório!' },
-      { tipo: 'minlength', mensagem: 'A senha deve ter pelo menos 6 caracteres!' },
-      { tipo: 'comparacao', mensagem: 'Deve ser igual a senha!' }
     ]
   };
+
+  private usuario: Usuario;
+
+  private manterLogadoTemp: boolean;
 
   constructor(
     private formBuilder: FormBuilder,
@@ -58,7 +51,7 @@ export class RegistroPage implements OnInit {
     public alertController: AlertController,
     public router: Router
   ) {
-    this.formRegistro = formBuilder.group({
+    this.formAlterar = formBuilder.group({
       nome: ['', Validators.compose([Validators.required, Validators.minLength(3)])],
       cpf: ['', Validators.compose([
         Validators.required,
@@ -70,35 +63,37 @@ export class RegistroPage implements OnInit {
       genero: ['', Validators.compose([Validators.required])],
       celular: ['', Validators.compose([Validators.maxLength(16)])],
       email: ['', Validators.compose([Validators.required, Validators.email])],
-      senha: ['', Validators.compose([Validators.required, Validators.minLength(6)])],
-      confirmarSenha: ['', Validators.compose([Validators.required, Validators.minLength(6)])],
-    }, {
-      validator: ComparacaoValidator('senha', 'confirmarSenha')
     });
+
+    this.preencherFormulario();
+
   }
 
-  async ngOnInit() {
-    await this.usuariosService.buscarTodos();
-    console.log(this.usuariosService.listaUsuarios);
+  ngOnInit() {
   }
 
-  public async salvarFormulario() {
-    if (this.formRegistro.valid) {
+  public async preencherFormulario() {
+    this.usuario = await this.usuariosService.buscarUsuarioLogado();
+    this.manterLogadoTemp = this.usuario.manterLogado;
+    delete this.usuario.manterLogado;
 
-      let usuario = new Usuario();
-      usuario.nome = this.formRegistro.value.nome;
-      usuario.cpf = this.formRegistro.value.cpf;
-      usuario.dataNascimento = new Date(this.formRegistro.value.dataNascimento);
-      usuario.genero = this.formRegistro.value.genero;
-      usuario.celular = this.formRegistro.value.celular;
-      usuario.email = this.formRegistro.value.email;
-      usuario.senha = this.formRegistro.value.senha;
+    this.formAlterar.setValue(this.usuario);
+    this.formAlterar.patchValue({ dataNascimento: this.usuario.dataNascimento.toISOString() });
+  }
 
-      if (await this.usuariosService.salvar(usuario)) {
-        this.exibirAlerta('SUCESSO!', 'Usuário salvo com sucesso!');
-        this.router.navigateByUrl('/login');
-      } else {
-        this.exibirAlerta('ERRO!', 'Erro ao salvar o usuário!');
+  public async salvar() {
+    if (this.formAlterar.valid) {
+      this.usuario.nome = this.formAlterar.value.nome;
+      this.usuario.dataNascimento = new Date(this.formAlterar.value.dataNascimento);
+      this.usuario.genero = this.formAlterar.value.genero;
+      this.usuario.celular = this.formAlterar.value.celular;
+      this.usuario.email = this.formAlterar.value.email;
+
+      if (await this.usuariosService.alterar(this.usuario)) {
+        this.usuario.manterLogado = this.manterLogadoTemp;
+        this.usuariosService.salvarUsuarioLogado(this.usuario);
+        this.exibirAlerta("SUCESSO!", "Usuário alterado com sucesso!");
+        this.router.navigateByUrl('/configuracoes');
       }
     } else {
       this.exibirAlerta('ADVERTENCIA!', 'Formulário inválido<br/>Verifique os campos do seu formulário!');
